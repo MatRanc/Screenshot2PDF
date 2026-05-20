@@ -4,6 +4,14 @@ A small macOS app that batch-crops PNG/JPEG images from a folder and stitches th
 
 Originally built for cropping recurring regions out of screenshots (e.g. a fixed window on a screen-recording frame grab).
 
+## Example use cases
+
+- **Archive an online document page-by-page.** Say you've taken a bunch of screenshots of a document online (academic paper in a viewer that disables download, a slide deck on a service that won't let you export, a paginated web reader) but need them as a single PDF. Drop them in a folder, draw a rectangle once around the document area to skip the browser chrome and sidebars, and you get a clean, scrollable PDF.
+- **Receipts and chat threads from phone screenshots.** A folder of iPhone screenshots of receipts or message threads. Crop out the status bar / notch / keyboard row so each page is just the content, and combine into one PDF for expense reports or records.
+- **Daily dashboard snapshots.** Recurring screenshots of a metrics, BI, or trading dashboard. Crop to the chart area only (no window chrome, tabs, or sidebars) and you get a flipbook PDF of how the chart changed day to day.
+- **Slides from a lecture or talk recording.** Frame-grabs taken at each slide change in QuickTime or a screen recorder. Crop out the presenter webcam tile, playback controls, and any overlays to get a clean slide deck.
+- **Per-image overrides for mixed sources.** If a few of the images don't share the same crop (e.g. one slide was a full-screen demo, the rest are 16:9), use **Preview & Adjust…** to set a different rectangle on just those images while the rest use the default.
+
 ## Features
 
 - Pick a folder of PNG/JPEG images
@@ -34,7 +42,7 @@ xcodebuild -project Screenshot2PDF.xcodeproj -scheme Screenshot2PDF -configurati
 2. Set the crop rectangle. Three options, all interchangeable:
    - Type the numbers directly into the X / Y / W / H fields (top-left origin).
    - Click **Set from Sample…** to pick any image and drag a yellow rectangle on it visually. "Apply to All" copies the result back to the global crop.
-   - Click **Preview & Adjust…** (enabled once a folder is loaded) to page through every image in the folder. Dragging the rectangle on a particular image creates a per-image override. Use **Apply as default for all** to promote the current rectangle to the default and clear overrides, or **Reset overrides** to remove all per-image overrides.
+   - Click **Preview & Adjust…** (enabled once a folder is loaded) to page through every image in the folder. Dragging the rectangle on a particular image creates a per-image override. A magnifier loupe appears while you drag a corner handle so you can line the edge up to the pixel. Use **Apply as default for all** to promote the current rectangle to the default and clear overrides, or **Reset overrides** to remove all per-image overrides.
 3. Click **Generate PDF**. Each image is cropped with its override if one exists, otherwise the default. The output is written as `CroppedOutput.pdf` in the selected folder.
 4. Click **Reveal PDF** to open it in Finder.
 

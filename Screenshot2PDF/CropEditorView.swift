@@ -6,15 +6,16 @@ struct CropEditorView: View {
     let imageURL: URL
     @Binding var rect: CropProcessor.CropRect
 
-    @State private var image: NSImage?
+    @State private var cgImage: CGImage?
     @State private var pixelSize: CGSize = .zero
     @State private var loadError: String?
     @State private var dragStartRect: CropProcessor.CropRect?
+    @State private var activeCorner: Corner?
 
     var body: some View {
         Group {
-            if let image, pixelSize.width > 0 {
-                editor(image: image)
+            if let cgImage, pixelSize.width > 0 {
+                editor(cgImage: cgImage)
             } else if let loadError {
                 Text(loadError).foregroundStyle(.red).padding()
             } else {
@@ -26,7 +27,7 @@ struct CropEditorView: View {
     }
 
     @ViewBuilder
-    private func editor(image: NSImage) -> some View {
+    private func editor(cgImage: CGImage) -> some View {
         GeometryReader { proxy in
             let scale = min(
                 proxy.size.width / pixelSize.width,
@@ -46,7 +47,7 @@ struct CropEditorView: View {
             ZStack(alignment: .topLeading) {
                 Color(NSColor.windowBackgroundColor)
 
-                Image(nsImage: image)
+                Image(decorative: cgImage, scale: 1)
                     .resizable()
                     .interpolation(.medium)
                     .frame(width: renderW, height: renderH)
@@ -72,13 +73,31 @@ struct CropEditorView: View {
                         .offset(x: p.x - 7, y: p.y - 7)
                         .gesture(resizeGesture(corner: corner, scale: scale))
                 }
+
+                if let activeCorner {
+                    let centerPx = activeCorner.point(in: CGRect(
+                        x: rect.x, y: rect.y, width: rect.width, height: rect.height
+                    ))
+                    let handleScreenX = originX + centerPx.x * scale
+                    let handleScreenY = originY + centerPx.y * scale
+                    let halfLoupe: CGFloat = 60
+                    let pad: CGFloat = 16
+                    let leftHalf = handleScreenX < proxy.size.width / 2
+                    let topHalf = handleScreenY < proxy.size.height / 2
+                    let lx = leftHalf ? proxy.size.width - halfLoupe - pad : halfLoupe + pad
+                    let ly = topHalf ? proxy.size.height - halfLoupe - pad : halfLoupe + pad
+
+                    LoupeView(cgImage: cgImage, pixelSize: pixelSize, centerPx: centerPx)
+                        .position(x: lx, y: ly)
+                        .allowsHitTesting(false)
+                }
             }
         }
         .frame(minHeight: 300)
     }
 
     private func loadImage() {
-        image = nil
+        cgImage = nil
         pixelSize = .zero
         loadError = nil
         guard let src = CGImageSourceCreateWithURL(imageURL as CFURL, nil),
@@ -87,7 +106,7 @@ struct CropEditorView: View {
             return
         }
         pixelSize = CGSize(width: cg.width, height: cg.height)
-        image = NSImage(cgImage: cg, size: NSSize(width: cg.width, height: cg.height))
+        cgImage = cg
     }
 
     private func moveGesture(scale: CGFloat) -> some Gesture {
@@ -111,6 +130,7 @@ struct CropEditorView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 if dragStartRect == nil { dragStartRect = rect }
+                activeCorner = corner
                 let start = dragStartRect!
                 let dx = Int((value.translation.width / scale).rounded())
                 let dy = Int((value.translation.height / scale).rounded())
@@ -150,7 +170,10 @@ struct CropEditorView: View {
                 if y + h > Int(pixelSize.height) { h = max(minSize, Int(pixelSize.height) - y) }
                 rect = .init(x: x, y: y, width: w, height: h)
             }
-            .onEnded { _ in dragStartRect = nil }
+            .onEnded { _ in
+                dragStartRect = nil
+                activeCorner = nil
+            }
     }
 
     enum Corner: CaseIterable, Hashable {
@@ -173,6 +196,59 @@ private struct OutsideMask: Shape {
         p.addRect(bounds)
         p.addRect(rect)
         return p
+    }
+}
+
+private struct LoupeView: View {
+    let cgImage: CGImage
+    let pixelSize: CGSize
+    let centerPx: CGPoint
+
+    private let size: CGFloat = 120
+    private let loupeScale: CGFloat = 3.0
+
+    private var regionInImage: CGRect {
+        let regionW = size / loupeScale
+        let regionH = size / loupeScale
+        var x = centerPx.x - regionW / 2
+        var y = centerPx.y - regionH / 2
+        x = max(0, min(max(0, pixelSize.width - regionW), x))
+        y = max(0, min(max(0, pixelSize.height - regionH), y))
+        return CGRect(x: x, y: y, width: regionW, height: regionH)
+    }
+
+    var body: some View {
+        let region = regionInImage
+        let canCrop = region.width <= pixelSize.width
+            && region.height <= pixelSize.height
+            && region.width > 0
+            && region.height > 0
+        let cropped: CGImage? = canCrop ? cgImage.cropping(to: region) : nil
+        let crossX = (centerPx.x - region.origin.x) * loupeScale
+        let crossY = (centerPx.y - region.origin.y) * loupeScale
+
+        ZStack {
+            if let cropped {
+                Image(decorative: cropped, scale: 1)
+                    .resizable()
+                    .interpolation(.high)
+            } else {
+                Color.black
+            }
+
+            Path { p in
+                p.move(to: CGPoint(x: crossX - 10, y: crossY))
+                p.addLine(to: CGPoint(x: crossX + 10, y: crossY))
+                p.move(to: CGPoint(x: crossX, y: crossY - 10))
+                p.addLine(to: CGPoint(x: crossX, y: crossY + 10))
+            }
+            .stroke(Color.yellow, lineWidth: 1.2)
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+        .overlay(Circle().stroke(Color.white.opacity(0.95), lineWidth: 2))
+        .overlay(Circle().stroke(Color.black.opacity(0.5), lineWidth: 1).padding(1.5))
+        .shadow(color: .black.opacity(0.4), radius: 6, x: 0, y: 2)
     }
 }
 
