@@ -5,7 +5,7 @@ import PDFKit
 import AppKit
 
 struct CropProcessor {
-    struct CropRect {
+    struct CropRect: Equatable, Hashable {
         var x: Int
         var y: Int
         var width: Int
@@ -33,17 +33,24 @@ struct CropProcessor {
 
     func process(
         folder: URL,
-        cropRect: CropRect,
+        defaultCropRect: CropRect,
+        cropOverrides: [String: CropRect] = [:],
         onProgress: @escaping (String, Double) -> Void
     ) async throws -> URL {
         try await Task.detached(priority: .userInitiated) {
-            try Self.run(folder: folder, cropRect: cropRect, onProgress: onProgress)
+            try Self.run(
+                folder: folder,
+                defaultCropRect: defaultCropRect,
+                cropOverrides: cropOverrides,
+                onProgress: onProgress
+            )
         }.value
     }
 
     private static func run(
         folder: URL,
-        cropRect: CropRect,
+        defaultCropRect: CropRect,
+        cropOverrides: [String: CropRect],
         onProgress: @escaping (String, Double) -> Void
     ) throws -> URL {
         let fm = FileManager.default
@@ -74,6 +81,7 @@ struct CropProcessor {
         for (idx, entry) in images.enumerated() {
             let (url, _) = entry
             let name = url.lastPathComponent
+            let cropRect = cropOverrides[name] ?? defaultCropRect
 
             guard
                 let src = CGImageSourceCreateWithURL(url as CFURL, nil),

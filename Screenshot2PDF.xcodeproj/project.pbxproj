@@ -10,6 +10,7 @@
 		AA0000000000000000000011 /* Screenshot2PDFApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000010 /* Screenshot2PDFApp.swift */; };
 		AA0000000000000000000013 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000012 /* ContentView.swift */; };
 		AA0000000000000000000015 /* CropProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000014 /* CropProcessor.swift */; };
+		AA000000000000000000001D /* CropEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000001C /* CropEditorView.swift */; };
 		AA0000000000000000000017 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000016 /* Assets.xcassets */; };
 		AA000000000000000000001A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000019 /* Preview Assets.xcassets */; };
 /* End PBXBuildFile section */
@@ -19,6 +20,7 @@
 		AA0000000000000000000010 /* Screenshot2PDFApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Screenshot2PDFApp.swift; sourceTree = "<group>"; };
 		AA0000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000014 /* CropProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropProcessor.swift; sourceTree = "<group>"; };
+		AA000000000000000000001C /* CropEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CropEditorView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000016 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0000000000000000000018 /* Screenshot2PDF.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Screenshot2PDF.entitlements; sourceTree = "<group>"; };
 		AA0000000000000000000019 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
@@ -57,6 +59,7 @@
 				AA0000000000000000000010 /* Screenshot2PDFApp.swift */,
 				AA0000000000000000000012 /* ContentView.swift */,
 				AA0000000000000000000014 /* CropProcessor.swift */,
+				AA000000000000000000001C /* CropEditorView.swift */,
 				AA0000000000000000000016 /* Assets.xcassets */,
 				AA0000000000000000000018 /* Screenshot2PDF.entitlements */,
 				AA000000000000000000001B /* Preview Content */,
@@ -145,6 +148,7 @@
 				AA0000000000000000000013 /* ContentView.swift in Sources */,
 				AA0000000000000000000011 /* Screenshot2PDFApp.swift in Sources */,
 				AA0000000000000000000015 /* CropProcessor.swift in Sources */,
+				AA000000000000000000001D /* CropEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
