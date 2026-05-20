@@ -57,5 +57,6 @@ Screenshot2PDF/
 ├── CropEditorView.swift       # Visual rectangle editor + sample / preview sheets
 ├── CropProcessor.swift        # Image crop + PDF assembly
 ├── Screenshot2PDF.entitlements
+├── PrivacyInfo.xcprivacy
 └── Assets.xcassets
 ```
