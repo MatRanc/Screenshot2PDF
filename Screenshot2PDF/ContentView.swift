@@ -6,9 +6,22 @@ private struct PresentedSample: Identifiable {
     let url: URL
 }
 
+enum ImageSortOrder: String, CaseIterable, Identifiable {
+    case creationDate
+    case name
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .creationDate: return "Creation Date"
+        case .name: return "Name"
+        }
+    }
+}
+
 struct ContentView: View {
     @State private var folderURL: URL? = nil
     @State private var folderImageURLs: [URL] = []
+    @State private var sortOrder: ImageSortOrder = .creationDate
     @State private var defaultCrop = CropProcessor.CropRect(x: 1015, y: 300, width: 1305, height: 1670)
     @State private var cropOverrides: [String: CropProcessor.CropRect] = [:]
 
@@ -27,12 +40,30 @@ struct ContentView: View {
                 .font(.title2).bold()
 
             GroupBox("Folder") {
-                HStack {
-                    Text(folderURL?.path ?? "No folder selected")
-                        .lineLimit(1).truncationMode(.middle)
-                        .foregroundStyle(folderURL == nil ? .secondary : .primary)
-                    Spacer()
-                    Button("Choose…") { chooseFolder() }
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(folderURL?.path ?? "No folder selected")
+                            .lineLimit(1).truncationMode(.middle)
+                            .foregroundStyle(folderURL == nil ? .secondary : .primary)
+                        Spacer()
+                        Button("Choose…") { chooseFolder() }
+                    }
+
+                    if !folderImageURLs.isEmpty {
+                        HStack {
+                            Text("\(folderImageURLs.count) image\(folderImageURLs.count == 1 ? "" : "s")")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Picker("Sort by", selection: $sortOrder) {
+                                ForEach(ImageSortOrder.allCases) { order in
+                                    Text(order.label).tag(order)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                            .frame(maxWidth: 260)
+                        }
+                    }
                 }
                 .padding(.vertical, 4)
             }
@@ -113,10 +144,13 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingPreview) {
             PreviewSheet(
-                imageURLs: folderImageURLs,
+                imageURLs: $folderImageURLs,
                 defaultCrop: $defaultCrop,
                 overrides: $cropOverrides
             )
+        }
+        .onChange(of: sortOrder) { _, _ in
+            sortFolderImages()
         }
     }
 
@@ -150,14 +184,24 @@ struct ContentView: View {
             includingPropertiesForKeys: resourceKeys,
             options: [.skipsHiddenFiles]
         )) ?? []
-        folderImageURLs = items
-            .filter { supported.contains($0.pathExtension.lowercased()) }
-            .sorted { a, b in
+        folderImageURLs = items.filter { supported.contains($0.pathExtension.lowercased()) }
+        sortFolderImages()
+    }
+
+    private func sortFolderImages() {
+        switch sortOrder {
+        case .creationDate:
+            folderImageURLs.sort { a, b in
                 let av = (try? a.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantFuture
                 let bv = (try? b.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? .distantFuture
                 if av == bv { return a.lastPathComponent < b.lastPathComponent }
                 return av < bv
             }
+        case .name:
+            folderImageURLs.sort { a, b in
+                a.lastPathComponent.localizedStandardCompare(b.lastPathComponent) == .orderedAscending
+            }
+        }
     }
 
     private func pickSample() {
@@ -185,6 +229,7 @@ struct ContentView: View {
         do {
             let pdf = try await processor.process(
                 folder: folderURL,
+                imageURLs: folderImageURLs,
                 defaultCropRect: defaultCrop,
                 cropOverrides: cropOverrides,
                 onProgress: { line, p in

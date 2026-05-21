@@ -313,30 +313,71 @@ struct SampleEditorSheet: View {
 }
 
 struct PreviewSheet: View {
-    let imageURLs: [URL]
+    @Binding var imageURLs: [URL]
     @Binding var defaultCrop: CropProcessor.CropRect
     @Binding var overrides: [String: CropProcessor.CropRect]
 
     @Environment(\.dismiss) private var dismiss
-    @State private var index: Int = 0
+    @State private var selection: URL?
     @State private var workingRect: CropProcessor.CropRect = .init(x: 0, y: 0, width: 0, height: 0)
     @State private var suppressSync = true
 
     var body: some View {
+        HSplitView {
+            sidebar
+            mainPanel
+        }
+        .frame(minWidth: 1000, minHeight: 640)
+        .onAppear {
+            if selection == nil { selection = imageURLs.first }
+            loadCurrent()
+        }
+        .onChange(of: selection) { _, _ in loadCurrent() }
+        .onChange(of: workingRect) { _, newValue in
+            if suppressSync { suppressSync = false; return }
+            guard let url = selection else { return }
+            let name = url.lastPathComponent
+            if newValue == defaultCrop {
+                overrides.removeValue(forKey: name)
+            } else {
+                overrides[name] = newValue
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        List(selection: $selection) {
+            ForEach(Array(imageURLs.enumerated()), id: \.element) { idx, url in
+                ThumbnailRow(
+                    url: url,
+                    pageNumber: idx + 1,
+                    isOverridden: overrides[url.lastPathComponent] != nil
+                )
+                .tag(url)
+            }
+            .onMove { from, to in
+                imageURLs.move(fromOffsets: from, toOffset: to)
+            }
+        }
+        .listStyle(.sidebar)
+        .frame(minWidth: 180, idealWidth: 200, maxWidth: 260)
+    }
+
+    private var mainPanel: some View {
         VStack(spacing: 0) {
             HStack {
                 Button { move(by: -1) } label: { Image(systemName: "chevron.left") }
-                    .disabled(index == 0)
+                    .disabled(currentIndex <= 0)
                     .keyboardShortcut(.leftArrow, modifiers: [.command])
 
                 Spacer()
 
                 VStack(spacing: 2) {
-                    if !imageURLs.isEmpty {
-                        Text("\(index + 1) / \(imageURLs.count)")
+                    if let selection {
+                        Text("\(currentIndex + 1) / \(imageURLs.count)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text(imageURLs[index].lastPathComponent)
+                        Text(selection.lastPathComponent)
                             .font(.headline)
                             .lineLimit(1).truncationMode(.middle)
                     }
@@ -345,13 +386,13 @@ struct PreviewSheet: View {
                 Spacer()
 
                 Button { move(by: 1) } label: { Image(systemName: "chevron.right") }
-                    .disabled(index >= imageURLs.count - 1)
+                    .disabled(currentIndex >= imageURLs.count - 1)
                     .keyboardShortcut(.rightArrow, modifiers: [.command])
             }
             .padding()
 
-            if !imageURLs.isEmpty {
-                CropEditorView(imageURL: imageURLs[index], rect: $workingRect)
+            if let selection {
+                CropEditorView(imageURL: selection, rect: $workingRect)
                     .padding(.horizontal)
             }
 
@@ -390,37 +431,90 @@ struct PreviewSheet: View {
             }
             .padding()
         }
-        .frame(minWidth: 820, minHeight: 640)
-        .onAppear { loadCurrent() }
-        .onChange(of: workingRect) { _, newValue in
-            if suppressSync { suppressSync = false; return }
-            guard !imageURLs.isEmpty else { return }
-            let name = imageURLs[index].lastPathComponent
-            if newValue == defaultCrop {
-                overrides.removeValue(forKey: name)
-            } else {
-                overrides[name] = newValue
-            }
-        }
+    }
+
+    private var currentIndex: Int {
+        guard let selection else { return -1 }
+        return imageURLs.firstIndex(of: selection) ?? -1
     }
 
     private var isOverridden: Bool {
-        guard !imageURLs.isEmpty else { return false }
-        return overrides[imageURLs[index].lastPathComponent] != nil
+        guard let selection else { return false }
+        return overrides[selection.lastPathComponent] != nil
     }
 
     private func move(by delta: Int) {
-        let newIndex = max(0, min(imageURLs.count - 1, index + delta))
-        if newIndex == index { return }
-        index = newIndex
-        loadCurrent()
+        let newIndex = max(0, min(imageURLs.count - 1, currentIndex + delta))
+        if newIndex == currentIndex || newIndex < 0 { return }
+        selection = imageURLs[newIndex]
     }
 
     private func loadCurrent() {
-        guard !imageURLs.isEmpty else { return }
-        let name = imageURLs[index].lastPathComponent
+        guard let selection else { return }
+        let name = selection.lastPathComponent
         let target = overrides[name] ?? defaultCrop
         suppressSync = true
         workingRect = target
+    }
+}
+
+private struct ThumbnailRow: View {
+    let url: URL
+    let pageNumber: Int
+    let isOverridden: Bool
+    @State private var image: NSImage?
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ZStack {
+                Color.gray.opacity(0.15)
+                if let image {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                }
+            }
+            .frame(width: 56, height: 72)
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(Color.black.opacity(0.15), lineWidth: 0.5)
+            )
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(pageNumber)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(url.lastPathComponent)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .truncationMode(.middle)
+                if isOverridden {
+                    Text("override")
+                        .font(.caption2)
+                        .padding(.horizontal, 4).padding(.vertical, 1)
+                        .background(Color.yellow.opacity(0.3))
+                        .clipShape(Capsule())
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 2)
+        .task(id: url) { await loadThumbnail() }
+    }
+
+    private func loadThumbnail() async {
+        let result: NSImage? = await Task.detached(priority: .userInitiated) {
+            let options: [CFString: Any] = [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceThumbnailMaxPixelSize: 200,
+                kCGImageSourceCreateThumbnailWithTransform: true
+            ]
+            guard let src = CGImageSourceCreateWithURL(url as CFURL, nil),
+                  let cg = CGImageSourceCreateThumbnailAtIndex(src, 0, options as CFDictionary)
+            else { return nil }
+            return NSImage(cgImage: cg, size: .zero)
+        }.value
+        await MainActor.run { image = result }
     }
 }

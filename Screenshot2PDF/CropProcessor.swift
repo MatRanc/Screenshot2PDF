@@ -33,6 +33,7 @@ struct CropProcessor {
 
     func process(
         folder: URL,
+        imageURLs: [URL],
         defaultCropRect: CropRect,
         cropOverrides: [String: CropRect] = [:],
         onProgress: @escaping (String, Double) -> Void
@@ -40,6 +41,7 @@ struct CropProcessor {
         try await Task.detached(priority: .userInitiated) {
             try Self.run(
                 folder: folder,
+                imageURLs: imageURLs,
                 defaultCropRect: defaultCropRect,
                 cropOverrides: cropOverrides,
                 onProgress: onProgress
@@ -49,37 +51,19 @@ struct CropProcessor {
 
     private static func run(
         folder: URL,
+        imageURLs: [URL],
         defaultCropRect: CropRect,
         cropOverrides: [String: CropRect],
         onProgress: @escaping (String, Double) -> Void
     ) throws -> URL {
-        let fm = FileManager.default
-        let resourceKeys: [URLResourceKey] = [.creationDateKey, .isRegularFileKey]
-        let items = try fm.contentsOfDirectory(
-            at: folder,
-            includingPropertiesForKeys: resourceKeys,
-            options: [.skipsHiddenFiles]
-        )
-
-        let images = items
-            .filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
-            .map { url -> (URL, Date) in
-                let values = try? url.resourceValues(forKeys: Set(resourceKeys))
-                let created = values?.creationDate ?? .distantFuture
-                return (url, created)
-            }
-            .sorted { a, b in
-                if a.1 == b.1 { return a.0.lastPathComponent < b.0.lastPathComponent }
-                return a.1 < b.1
-            }
+        let images = imageURLs.filter { supportedExtensions.contains($0.pathExtension.lowercased()) }
 
         guard !images.isEmpty else { throw ProcessorError.noImages }
 
         let pdf = PDFDocument()
         let total = images.count
 
-        for (idx, entry) in images.enumerated() {
-            let (url, _) = entry
+        for (idx, url) in images.enumerated() {
             let name = url.lastPathComponent
             let cropRect = cropOverrides[name] ?? defaultCropRect
 
