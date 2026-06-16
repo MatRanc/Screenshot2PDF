@@ -21,3 +21,6 @@ Package.resolved
 # CocoaPods / Carthage (in case added later)
 Pods/
 Carthage/Build/
+
+# Local test data
+test_folder/
