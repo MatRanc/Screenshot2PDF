@@ -15,11 +15,12 @@ Originally built for cropping recurring regions out of screenshots (e.g. a fixed
 ## Features
 
 - Pick a folder of PNG/JPEG images
+- Sort the images by creation date or by name before building the PDF
 - Set a crop rectangle numerically (`x`, `y`, `width`, `height` in pixels, top-left origin)
-- **Set from Sample…** — upload any image and drag a rectangle on it to set the crop
-- **Preview & Adjust…** — page through every image in the folder and tweak the crop per-image; images without an override use the default
+- **Set from Sample…**, upload any image and drag a rectangle on it to set the crop
+- **Preview & Adjust…**, page through every image in the folder, drag thumbnails to reorder pages, and tweak the crop per-image; images without an override use the default
 - Generates `CroppedOutput.pdf` in the same folder, one page per image
-- Sandboxed, user-selected file access only
+- Sandboxed, user-selected file access only, no network access
 - macOS 14+ (SwiftUI, PDFKit)
 
 ## Build & run
@@ -39,14 +40,15 @@ xcodebuild -project Screenshot2PDF.xcodeproj -scheme Screenshot2PDF -configurati
 ## Usage
 
 1. Click **Choose…** and select a folder containing PNG/JPEG images.
-2. Set the crop rectangle. Three options, all interchangeable:
+2. Pick a sort order (Creation Date or Name) to control page order, or open **Preview & Adjust…** and drag thumbnails to reorder pages by hand.
+3. Set the crop rectangle. Three options, all interchangeable:
    - Type the numbers directly into the X / Y / W / H fields (top-left origin).
    - Click **Set from Sample…** to pick any image and drag a yellow rectangle on it visually. "Apply to All" copies the result back to the global crop.
    - Click **Preview & Adjust…** (enabled once a folder is loaded) to page through every image in the folder. Dragging the rectangle on a particular image creates a per-image override. A magnifier loupe appears while you drag a corner handle so you can line the edge up to the pixel. Use **Apply as default for all** to promote the current rectangle to the default and clear overrides, or **Reset overrides** to remove all per-image overrides.
-3. Click **Generate PDF**. Each image is cropped with its override if one exists, otherwise the default. The output is written as `CroppedOutput.pdf` in the selected folder.
-4. Click **Reveal PDF** to open it in Finder.
+4. Click **Generate PDF**. Each image is cropped with its override if one exists, otherwise the default. The output is written as `CroppedOutput.pdf` in the selected folder.
+5. Click **Reveal PDF** to open it in Finder.
 
-Images are ordered by file creation date (ties broken alphabetically). If the crop rectangle falls outside any image's bounds, processing stops with an error naming the offending file.
+If the crop rectangle falls outside any image's bounds, processing stops with an error naming the offending file.
 
 ## Project layout
 
