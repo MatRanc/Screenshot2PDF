@@ -4,6 +4,13 @@ A small macOS app that batch-crops PNG/JPEG images from a folder and stitches th
 
 Originally built for cropping recurring regions out of screenshots (e.g. a fixed window on a screen-recording frame grab).
 
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshot-main.png" width="49%" />
+  <img src="docs/screenshot-preview.png" width="49%" />
+</p>
+
 ## Example use cases
 
 - **Archive an online document page-by-page.** Say you've taken a bunch of screenshots of a document online (academic paper in a viewer that disables download, a slide deck on a service that won't let you export, a paginated web reader) but need them as a single PDF. Drop them in a folder, draw a rectangle once around the document area to skip the browser chrome and sidebars, and you get a clean, scrollable PDF.
